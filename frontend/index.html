@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApneaGuard AI Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="compliance-banner">
+        ⚠️ Research prototype using public PhysioNet data. Not a diagnostic device.
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1>ApneaGuard <span>AI</span></h1>
+            <div class="controls">
+                <select id="recording-select">
+                    <option value="" disabled selected>Loading recordings...</option>
+                </select>
+                
+                <div class="model-toggle">
+                    <label class="toggle-btn active">
+                        <input type="radio" name="model-version" value="cnn" checked> CNN
+                    </label>
+                    <label class="toggle-btn">
+                        <input type="radio" name="model-version" value="classical"> XGBoost
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="dashboard-grid">
+                <!-- Severity Panel -->
+                <div class="glass-panel severity-panel" id="severity-panel">
+                    <h2>Severity Score</h2>
+                    <div class="severity-content">
+                        <div class="ahi-value" id="ahi-value">--</div>
+                        <div class="ahi-label">Events / Hour (AHI)</div>
+                        <div class="severity-band" id="severity-band">N/A</div>
+                    </div>
+                </div>
+
+                <!-- Signal Chart -->
+                <div class="glass-panel chart-panel">
+                    <h2>Prediction Timeline</h2>
+                    <div class="chart-container">
+                        <canvas id="prediction-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Explanation Panel -->
+                <div class="glass-panel explanation-panel" id="explanation-panel">
+                    <h2>Explainability</h2>
+                    <p class="subtitle" id="explanation-prompt">Select a recording to view explanations.</p>
+                    <div id="explanation-content" class="hidden">
+                        <img id="explanation-image" src="" alt="Explanation Plot">
+                        <div id="explanation-features" class="clinical-note"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
