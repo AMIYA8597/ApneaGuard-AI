@@ -23,4 +23,4 @@ lint:
 	venv/Scripts/python -m black --check src tests || venv/bin/python -m black --check src tests
 
 run:
-	@echo "Placeholder for Phase 9"
+	venv\Scripts\python.exe -m uvicorn api.main:app --reload

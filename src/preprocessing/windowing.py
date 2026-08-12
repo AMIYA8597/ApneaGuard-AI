@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 @dataclass
 class SignalWindow:
@@ -9,10 +9,10 @@ class SignalWindow:
     raw_ecg: np.ndarray
     filtered_ecg: np.ndarray
     r_peaks: np.ndarray
-    label: str
+    label: Optional[str]
 
 def window_by_minute(record_id: str, raw_ecg: np.ndarray, filtered_ecg: np.ndarray, 
-                     r_peaks: np.ndarray, fs: int, annotations: pd.DataFrame) -> List[SignalWindow]:
+                     r_peaks: np.ndarray, fs: int, annotations: Optional[pd.DataFrame] = None) -> List[SignalWindow]:
     """
     Window the ECG signal and R-peaks into 1-minute non-overlapping segments.
     Aligns exactly to the annotation minute boundaries to ensure label correspondence.
@@ -23,8 +23,8 @@ def window_by_minute(record_id: str, raw_ecg: np.ndarray, filtered_ecg: np.ndarr
     # Total possible full minutes based on signal length
     total_minutes = len(raw_ecg) // samples_per_minute
     
-    # Only iterate up to what's available in annotations
-    num_minutes = min(total_minutes, len(annotations))
+    # Only iterate up to what's available in annotations (if provided)
+    num_minutes = min(total_minutes, len(annotations)) if annotations is not None else total_minutes
     
     for min_idx in range(num_minutes):
         start_idx = min_idx * samples_per_minute
@@ -38,7 +38,7 @@ def window_by_minute(record_id: str, raw_ecg: np.ndarray, filtered_ecg: np.ndarr
         mask = (r_peaks >= start_idx) & (r_peaks < end_idx)
         peaks_in_window = r_peaks[mask] - start_idx
         
-        label = annotations.iloc[min_idx]['label']
+        label = annotations.iloc[min_idx]['label'] if annotations is not None else None
         
         window = SignalWindow(
             minute_index=min_idx,

@@ -1,4 +1,4 @@
-const API_BASE = "";
+let API_BASE = window.API_BASE || "";
 
 let currentChart = null;
 let currentPredictions = [];

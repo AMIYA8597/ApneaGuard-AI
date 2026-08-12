@@ -1,7 +1,11 @@
+import os
 import logging
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from .db import engine, Base
 from .routers import recordings, predictions, severity, explanations
+from .config import settings
 
 # Configure structured logging
 logging.basicConfig(
@@ -10,21 +14,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-import os
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from .routers import recordings, predictions, severity, explanations
-
 # Tables are managed by Alembic
 # Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ApneaGuard AI API")
 
-# Add CORS middleware to allow the frontend to call the API if needed
+# Add CORS middleware to allow the frontend to call the API
+# IMPORTANT: This API serves physiological predictions. An explicit allow-list is critical.
+# Never use wildcard ["*"] in production to prevent unauthorized cross-origin requests.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -44,3 +45,5 @@ else:
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting up ApneaGuard AI API")
+    from api.services.model_loader import load_all_models
+    load_all_models()

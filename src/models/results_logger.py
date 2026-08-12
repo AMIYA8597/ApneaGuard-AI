@@ -2,6 +2,15 @@ import os
 import subprocess
 from datetime import datetime
 
+def get_git_commit() -> str:
+    """Get the short git commit hash, with a fallback that explicitly indicates local uncommitted state."""
+    try:
+        commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.DEVNULL).decode('utf-8').strip()
+        return commit_hash
+    except Exception:
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        return f"local-uncommitted-{timestamp}"
+
 def log_model_results(model_name: str, precision: tuple, recall: tuple, f1: tuple, pr_auc: tuple):
     """
     Append run metrics to docs/model_results.md automatically.
@@ -10,11 +19,7 @@ def log_model_results(model_name: str, precision: tuple, recall: tuple, f1: tupl
     out_file = 'docs/model_results.md'
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
     
-    # Get current git commit hash
-    try:
-        commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.DEVNULL).decode('utf-8').strip()
-    except Exception:
-        commit_hash = "unknown"
+    commit_hash = get_git_commit()
         
     run_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     

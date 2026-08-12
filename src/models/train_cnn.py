@@ -12,7 +12,9 @@ from sklearn.metrics import precision_score, recall_score, f1_score, average_pre
 from src.models.cnn_dataset import ApneaECGDataset
 from src.models.cnn import Small1DCNN
 from src.models.cross_validation import subject_level_kfold
-from src.models.results_logger import log_model_results
+from src.models.results_logger import log_model_results, get_git_commit
+import json
+from datetime import datetime
 
 def evaluate_cnn():
     data_dir = 'data/raw'
@@ -34,6 +36,16 @@ def evaluate_cnn():
     train_records = [rec_id for rec_id, s in all_splits.items() if s == 'train']
     
     cv_splits = subject_level_kfold(train_records, k=5)
+    
+    manifest_path = 'models/artifacts/manifest.json'
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'r') as f:
+            manifest = json.load(f)
+    else:
+        manifest = []
+        
+    git_commit = get_git_commit()
+    trained_at = datetime.now().isoformat()
     
     # Pre-calculate record_id for each index in the dataset to map folds correctly
     record_map = []
@@ -142,6 +154,46 @@ def evaluate_cnn():
     
     log_model_results("1D-CNN (Raw ECG)", prec, rec, f1, prauc)
     print("Logged 1D-CNN metrics.")
+    
+    # Retrain on full dataset
+    print("Retraining 1D-CNN on full dataset...")
+    full_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+    
+    final_model = Small1DCNN().to(device)
+    criterion_final = nn.BCEWithLogitsLoss()
+    optimizer_final = optim.Adam(final_model.parameters(), lr=1e-3, weight_decay=1e-4)
+    
+    final_model.train()
+    for epoch in range(10): # Fixed epochs since we have no internal val set
+        for x, y in full_loader:
+            x, y = x.to(device), y.to(device)
+            optimizer_final.zero_grad()
+            out = final_model(x).squeeze(-1)
+            loss = criterion_final(out, y)
+            loss.backward()
+            optimizer_final.step()
+            
+    # Save model
+    filename = f"cnn_1d_{git_commit}.pt"
+    filepath = os.path.join('models', 'artifacts', filename)
+    torch.save(final_model.state_dict(), filepath)
+    print(f"Saved CNN artifact to {filepath}")
+    
+    # Append to manifest
+    manifest.append({
+        "model_name": "1D-CNN (Raw ECG)",
+        "filename": filename,
+        "git_commit_hash": git_commit,
+        "trained_at": trained_at,
+        "metrics": {
+            "pr_auc": float(np.mean(metrics['pr_auc'])),
+            "f1": float(np.mean(metrics['f1']))
+        },
+        "is_production": False
+    })
+    
+    with open(manifest_path, 'w') as f:
+        json.dump(manifest, f, indent=2)
 
 if __name__ == '__main__':
     evaluate_cnn()

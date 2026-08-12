@@ -12,7 +12,10 @@ from sklearn.metrics import precision_score, recall_score, f1_score, average_pre
 import xgboost as xgb
 import lightgbm as lgb
 from src.models.cross_validation import subject_level_kfold
-from src.models.results_logger import log_model_results
+from src.models.results_logger import log_model_results, get_git_commit
+import joblib
+import json
+from datetime import datetime
 
 def evaluate_classical_models():
     table_path = 'data/processed/feature_table.parquet'
@@ -45,6 +48,16 @@ def evaluate_classical_models():
     best_f1_score = -1.0
     best_model_name = ""
     best_cm_aggregate = np.zeros((2, 2))
+    
+    manifest_path = 'models/artifacts/manifest.json'
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'r') as f:
+            manifest = json.load(f)
+    else:
+        manifest = []
+        
+    git_commit = get_git_commit()
+    trained_at = datetime.now().isoformat()
     
     for model_name, model in models.items():
         metrics = {'precision': [], 'recall': [], 'f1': [], 'pr_auc': []}
@@ -82,6 +95,32 @@ def evaluate_classical_models():
         
         log_model_results(model_name, prec, rec, f1, prauc)
         print(f"Logged {model_name} metrics.")
+        
+        # Retrain on full dataset
+        print(f"Retraining {model_name} on full dataset...")
+        model.fit(train_df[features], train_df['label_bin'])
+        
+        # Save model
+        filename = f"{model_name.lower().replace(' ', '_')}_{git_commit}.joblib"
+        filepath = os.path.join('models', 'artifacts', filename)
+        joblib.dump(model, filepath)
+        
+        # Append to manifest
+        manifest.append({
+            "model_name": model_name,
+            "filename": filename,
+            "git_commit_hash": git_commit,
+            "trained_at": trained_at,
+            "metrics": {
+                "pr_auc": float(np.mean(metrics['pr_auc'])),
+                "f1": float(mean_f1)
+            },
+            "is_production": False
+        })
+        
+    # Write manifest
+    with open(manifest_path, 'w') as f:
+        json.dump(manifest, f, indent=2)
         
     # Save the best model's confusion matrix
     docs_dir = 'docs'

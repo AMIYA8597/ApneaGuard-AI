@@ -20,9 +20,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Stage 2: Runtime
 FROM python:3.11-slim
 
-# Install runtime dependencies (e.g., libgomp1 for LightGBM/XGBoost if needed)
+# Install runtime dependencies (e.g., libgomp1 for LightGBM/XGBoost, curl for fetching models)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -38,8 +39,15 @@ COPY frontend/ frontend/
 COPY db/ db/
 COPY alembic.ini .
 
+# Create the artifacts directory
+RUN mkdir -p models/artifacts
+
+# Copy entrypoint script
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Expose FastAPI port
 EXPOSE 8000
 
-# Run Alembic migrations and then start Uvicorn
-CMD ["sh", "-c", "alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port 8000"]
+# Set the entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]

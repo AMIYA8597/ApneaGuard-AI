@@ -1,9 +1,12 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from .config import settings
 
-# Fallback to local docker defaults if not provided
-DB_URL = os.environ.get("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/apneaguard")
+DB_URL = settings.DATABASE_URL
+
+if os.environ.get("TESTING") == "1":
+    DB_URL = "sqlite:///:memory:"
 
 from sqlalchemy.pool import StaticPool
 

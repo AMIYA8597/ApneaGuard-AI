@@ -1,0 +1,24 @@
+[
+  {
+    "model_name": "Random Forest Baseline",
+    "filename": "rf_baseline_575c7bd.joblib",
+    "git_commit_hash": "575c7bd",
+    "trained_at": "2026-08-12T11:26:03.677093",
+    "metrics": {
+      "pr_auc": 0.5,
+      "f1": 0.5
+    },
+    "is_production": false
+  },
+  {
+    "model_name": "1D-CNN (Raw ECG)",
+    "filename": "cnn_1d_575c7bd.pt",
+    "git_commit_hash": "575c7bd",
+    "trained_at": "2026-08-12T11:26:03.677093",
+    "metrics": {
+      "pr_auc": 0.6,
+      "f1": 0.6
+    },
+    "is_production": true
+  }
+]
